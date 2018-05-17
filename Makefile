@@ -1,24 +1,29 @@
-.PHONY: check-keys
+.PHONY: help check-keys build start attach stop
+
+.DEFAULT_GOAL := help
+
+
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
+
 check-keys:
 ifndef DEPLOY_KEY
-	$(error DEPLOY_KEY must be specified.)
+	$(error Variable DEPLOY_KEY must be specified)
 endif
 ifndef SIGN_KEY
-	$(error SIGN_KEY must be specified.)
+	$(error Variable SIGN_KEY must be specified)
 endif
 
-.PHONY: build-host
-build-host:
+build: ## Build alpine package host image
 	docker build -t alpine-repo-host .
 
-.PHONY: start-it-host
-start-it-host: check-keys build-host
-	docker run --privileged -it --rm --name alpine-apk-server -p80:80 -p6223:6223 -v $(DEPLOY_KEY):/keys/deploy_key/authorized_keys -v $(SIGN_KEY):/keys/sign_key/$(notdir $(SIGN_KEY)) alpine-repo-host
+start: check-keys build ## Start alpine package host server
+	docker run --privileged --rm -t -d --name alpine-apk-server -p80:80 -p6223:6223 -v $(realpath $(DEPLOY_KEY)):/keys/deploy_key/authorized_keys -v $(realpath $(SIGN_KEY)):/keys/sign_key/$(notdir $(SIGN_KEY)) alpine-repo-host
 
-.PHONY: start-host
-start-host: build-host
-		docker run --privileged --rm --name alpine-apk-server -p80:80 -p6223:6223 -d alpine-repo-host nginx
+attach: ## Attach to running container
+	docker exec -i -t alpine-apk-server /bin/sh
 
-.PHONY: stop-host
-stop-host:
+stop: ## Stop alpine package host server
 	docker container stop alpine-apk-server

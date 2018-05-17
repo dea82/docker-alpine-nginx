@@ -14,5 +14,7 @@ RUN apk add --update nginx openssh-server-pam && \
     chown root:root /www && \
     /usr/local/bin/setup-ssh.sh
 
+ENTRYPOINT ["/usr/local/bin/start-services.sh"]
+
 # Expose the ports for nginx
 EXPOSE 80 6223
